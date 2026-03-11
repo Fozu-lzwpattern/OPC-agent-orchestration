@@ -1,0 +1,69 @@
+# OPC Aware 触发器模板
+# 复制到 opc-projects/<pid>/triggers.yaml 后按需修改
+# 文档: references/aware-triggers.md
+
+version: "1.0"
+triggers:
+  # ── 类型1: cron — 定时触发 ──
+  - id: daily-report
+    type: cron
+    schedule: "30 9 * * *"           # 每天 09:30
+    timezone: "Asia/Shanghai"
+    focus_ref: "daily-tasks"
+    action:
+      type: spawn_agent
+      agent_label: "report-writer"
+      task: "生成并发送日报"
+    enabled: true
+
+  # ── 类型2: once — 一次性触发 ──
+  - id: deadline-reminder
+    type: once
+    at: "2026-03-15T10:00:00+08:00"
+    focus_ref: "project-release"
+    action:
+      type: notify
+      target: "daxiang"
+      message: "项目 deadline 到了，请检查交付状态"
+    enabled: true
+    fired: false
+
+  # ── 类型3: interval — 周期检查 ──
+  - id: status-check
+    type: interval
+    every_minutes: 30
+    focus_ref: "project-monitoring"
+    action:
+      type: run_script
+      command: "python3 scripts/project_state_v2.py show {project_id}"
+    enabled: true
+    last_fired: null
+
+  # ── 类型4: on_message — 消息触发 ──
+  - id: phase-transition
+    type: on_message
+    from_agent: "core-engineer"
+    contains: "Phase 1 完成"
+    match_mode: "contains"
+    focus_ref: "project-mvp"
+    action:
+      type: spawn_agent
+      agent_label: "doc-writer"
+      task: "开始 Phase 2 文档编写"
+    enabled: true
+    max_fires: 1
+
+  # ── 类型5: poll — 外部状态轮询 ──
+  - id: ci-check
+    type: poll
+    url: "https://api.github.com/repos/{owner}/{repo}/actions/runs?per_page=1"
+    check_path: "workflow_runs[0].conclusion"
+    expected: "success"
+    interval_minutes: 5
+    focus_ref: "ci-monitoring"
+    action:
+      type: notify
+      target: "daxiang"
+      message: "CI 构建成功"
+    enabled: true
+    timeout_minutes: 60

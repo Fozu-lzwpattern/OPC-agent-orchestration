@@ -1,0 +1,22 @@
+# OPC Focus 焦点模板
+# 复制到 opc-projects/<pid>/focus.yaml 后按需修改
+# 文档: references/aware-triggers.md
+
+version: "1.0"
+focus_items:
+  - id: "project-mvp"
+    title: "项目 MVP 工程"
+    status: "[ ]"                     # [ ]=待办 [/]=进行中 [x]=完成 [!]=阻塞
+    priority: P0
+    agents: ["core-engineer", "doc-writer"]
+    triggers: ["status-check", "phase-transition"]
+    created: "2026-03-12T00:00:00+08:00"
+    completed: null
+    auto_complete: true               # 所有 agent 完成时自动标记 [x]
+
+  - id: "daily-tasks"
+    title: "每日例行任务"
+    status: "[ ]"
+    priority: P1
+    triggers: ["daily-report"]
+    recurring: true                   # 循环焦点，完成后重置为 [ ]

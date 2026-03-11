@@ -155,3 +155,94 @@
 - 修改文件：2（SKILL.md + CHANGELOG.md）
 - 新增行数：~550行
 - SKILL.md 总行数：~486行
+# v2.0 (2026-03-12) — Aware 触发器 + 运行时工具自发现
+
+> OPC 从"被动执行"进化为"事件驱动"——项目定义好规则后能自己动起来。
+
+## 核心新增
+
+### Aware 触发器系统（P0）
+
+声明式事件驱动，CEO 在 heartbeat 时调用 `evaluate()` 自动检查触发条件。
+
+- **scripts/trigger_engine.py** (~380行) — 触发器引擎 + Focus 管理器
+  - `TriggerEngine`: 5种触发类型（cron/once/interval/on_message/poll）
+  - `FocusManager`: 项目焦点自适应管理，agent 全部完成时自动关闭
+  - 命令行: `evaluate` / `status` / `fire` / `focus-list` / `focus-update`
+  - 状态持久化: `trigger_state.json`
+  - 内置自测: `--self-test`
+
+- **references/aware-triggers.md** (~200行) — 完整设计文档
+  - 触发器类型说明和 YAML Schema
+  - Focus 系统和联动机制
+  - CEO 集成规范和最佳实践
+
+- **templates/triggers.yaml** — 触发器配置模板（5种类型示例）
+- **templates/focus.yaml** — Focus 焦点模板
+
+### 运行时工具自发现（P0）
+
+任务启动前自动发现可用工具，弥补能力缺口。
+
+- **scripts/tool_discovery.py** (~300行) — 工具自发现引擎
+  - `scan`: 扫描本地已安装 Skill
+  - `search`: 搜索 ClawHub 公开 Skill
+  - `report`: 生成工具建议报告（任务↔工具匹配）
+  - `check`: 基础安全初筛
+  - 缓存: `.tool-cache.json`（TTL 1小时）
+  - 内置自测: `--self-test`
+
+- **references/tool-discovery.md** (~150行) — 设计文档
+  - 搜索源优先级和安全策略
+  - CEO 集成规范和使用示例
+
+### project_state_v2.py — 集成扩展
+
+在 v1.4 `project_state.py` 基础上新增 5 个命令:
+
+| 命令 | 说明 |
+|------|------|
+| `trigger-evaluate <pid>` | 评估所有触发器 |
+| `trigger-status <pid>` | 查看触发器状态 |
+| `focus-update <pid> <id> <status>` | 更新焦点状态 |
+| `focus-list <pid>` | 列出活跃焦点 |
+| `tool-scan <task>` | 扫描推荐工具 |
+
+另外，`agent-complete` 命令现在会自动调用 `FocusManager.check_auto_complete()`。
+
+## Changed
+
+- **SKILL.md** — 追加两个新章节（Aware 触发器 + 工具自发现），更新目录结构
+- **目录结构** — 新增 4 个文件到 scripts/、2 个到 references/、2 个到 templates/
+
+## 设计约束
+
+- Python 3.9+ 兼容，仅标准库 + yaml（可选，有 fallback）
+- 所有脚本支持 `--help` 和 `--self-test`
+- YAML 解析容错（缺字段不崩溃）
+- 触发器状态持久化到 `trigger_state.json`
+- 工具缓存 TTL 1 小时
+
+## 文件统计
+
+| 文件 | 行数 | 说明 |
+|------|------|------|
+| scripts/trigger_engine.py | ~380 | 新增 |
+| scripts/tool_discovery.py | ~300 | 新增 |
+| scripts/project_state_v2.py | ~370 | 新增（v1.4扩展） |
+| references/aware-triggers.md | ~200 | 新增 |
+| references/tool-discovery.md | ~150 | 新增 |
+| templates/triggers.yaml | ~60 | 新增 |
+| templates/focus.yaml | ~25 | 新增 |
+| SKILL_v2_additions.md | ~100 | SKILL.md 追加内容 |
+
+**新增总行数**: ~1585
+**新增文件数**: 8
+
+## 迁移指南
+
+1. 将 `scripts/trigger_engine.py` 和 `scripts/tool_discovery.py` 复制到正式路径
+2. 用 `project_state_v2.py` 替换原 `project_state.py`（完全向后兼容）
+3. 将 `references/` 和 `templates/` 下新文件复制到正式路径
+4. 将 `SKILL_v2_additions.md` 内容追加到 SKILL.md 末尾
+5. 将此 CHANGELOG 内容追加到 CHANGELOG.md

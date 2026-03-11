@@ -501,3 +501,135 @@ Agent 失败后需人工判断是 L1(平台)/L2(编排)/L3(业务) 问题。
    ↓
 4. 更新 state → 继续执行
 ```
+# SKILL.md v2.0 追加内容
+
+> 将以下内容追加到现有 SKILL.md 末尾
+
+---
+
+## Aware 触发器系统（v2.0 新增）
+
+### 概述
+
+声明式事件驱动系统，让项目在 heartbeat 时自动检查触发条件并执行动作。
+
+- **5种触发类型**: cron / once / interval / on_message / poll
+- **Focus 系统**: 项目焦点自适应管理，agent 全部完成时自动关闭焦点
+- **状态持久化**: 触发器状态写入 `trigger_state.json`，防 compaction 丢失
+
+### 触发器配置
+
+项目目录下创建 `triggers.yaml` 和 `focus.yaml`（模板见 `templates/`）:
+
+```bash
+# 复制模板
+cp templates/triggers.yaml opc-projects/<pid>/triggers.yaml
+cp templates/focus.yaml opc-projects/<pid>/focus.yaml
+```
+
+### CEO 集成规则
+
+**规则1: heartbeat 时调用 evaluate**
+```bash
+python3 scripts/trigger_engine.py evaluate <project_dir>
+# 或通过 project_state_v2:
+python3 scripts/project_state_v2.py trigger-evaluate <project_id>
+```
+
+**规则2: evaluate 返回的 action 必须执行**
+- `spawn_agent` → `sessions_spawn(label=..., task=...)`
+- `notify` → `message_send(target=..., message=...)`
+- `run_script` → `exec(command=...)`
+
+**规则3: agent-complete 后自动检查 Focus**
+`project_state_v2.py` 的 `agent-complete` 命令会自动调用 `FocusManager.check_auto_complete()`，无需手动检查。
+
+### 快速命令参考
+
+```bash
+# 评估触发器
+python3 scripts/project_state_v2.py trigger-evaluate <pid>
+
+# 查看触发器状态
+python3 scripts/project_state_v2.py trigger-status <pid>
+
+# 查看活跃焦点
+python3 scripts/project_state_v2.py focus-list <pid>
+
+# 更新焦点状态
+python3 scripts/project_state_v2.py focus-update <pid> <focus_id> "[/]"
+```
+
+详细设计 → [references/aware-triggers.md](references/aware-triggers.md)
+
+## 运行时工具自发现（v2.0 新增）
+
+### 概述
+
+任务启动前自动扫描可用 Skill，匹配任务需求，发现能力缺口时生成推荐报告。
+
+- **搜索源优先级**: 本地已安装 > Friday 官方 > ClawHub 社区
+- **安全优先**: 仅推荐官方源，安装需 CEO 确认
+- **缓存机制**: 扫描结果缓存 1 小时
+
+### CEO 集成规则
+
+**规则1: Phase 0 执行工具扫描**
+在项目规划前，执行工具扫描:
+```bash
+python3 scripts/project_state_v2.py tool-scan "任务描述"
+```
+
+**规则2: 为 Sub-agent 注入工具建议**
+在角色卡中包含推荐工具:
+```
+[OPC 角色卡]
+- 可用工具：gundam-ops（高达搭建）
+```
+
+**规则3: 外部 Skill 安装需确认**
+系统只推荐，安装需用户明确确认。遵循安全策略。
+
+### 快速命令参考
+
+```bash
+# 扫描本地 Skill
+python3 scripts/tool_discovery.py scan
+
+# 搜索
+python3 scripts/tool_discovery.py search "关键词"
+
+# 生成完整报告
+python3 scripts/tool_discovery.py report "任务描述"
+
+# 安全初筛
+python3 scripts/tool_discovery.py check <skill_path>
+
+# 通过 project_state_v2 集成调用
+python3 scripts/project_state_v2.py tool-scan "任务描述"
+```
+
+详细设计 → [references/tool-discovery.md](references/tool-discovery.md)
+
+## 目录结构更新（v2.0）
+
+```
+agent-orchestration-20260309-lzw/
+├── SKILL.md
+├── CHANGELOG.md
+├── references/
+│   ├── ... (v1.4 原有)
+│   ├── aware-triggers.md             # 【v2.0新增】触发器系统文档
+│   └── tool-discovery.md             # 【v2.0新增】工具发现文档
+├── templates/
+│   ├── ... (v1.4 原有)
+│   ├── triggers.yaml                 # 【v2.0新增】触发器模板
+│   └── focus.yaml                    # 【v2.0新增】Focus 模板
+└── scripts/
+    ├── project_state.py              # v2.0: 扩展 trigger/focus/tool-scan 命令
+    ├── trigger_engine.py             # 【v2.0新增】Aware 触发器引擎
+    ├── tool_discovery.py             # 【v2.0新增】工具自发现系统
+    ├── diagnose_agent.py
+    ├── cost_summary.sh
+    └── project_tracker.py
+```
