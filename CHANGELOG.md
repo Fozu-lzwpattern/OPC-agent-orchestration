@@ -249,6 +249,106 @@
 
 ---
 
+## v2.0 (2026-03-12) — Aware 触发器 + 运行时工具自发现
+
+### 核心变更
+
+借鉴 [Clawith](https://github.com/dataelement/clawith) 的 Aware 自治系统，新增两大能力。
+
+### Aware 触发器系统
+
+声明式事件驱动，在 `triggers.yaml` 中定义规则，CEO 不再手动轮询：
+
+| 触发类型 | 用途 |
+|---------|------|
+| `cron` | 定时触发 |
+| `once` | 一次性 deadline |
+| `interval` | 周期检查 |
+| `on_message` | Agent A 完成 → 自动启动 Agent B |
+| `poll` | 外部轮询 |
+
+配合 **Focus 焦点系统**——Focus 下所有 Agent 完成时自动标记完成并清理触发器。
+
+### 运行时工具自发现
+
+Agent 执行前自动扫描可用 Skill，发现能力缺口时生成推荐报告：
+- 本地扫描 `~/.openclaw/skills/` 和 `/app/skills/`
+- 基于 bigram 分词关键词匹配
+- 安全检查（可疑模式检测）
+- 已安装 / 推荐安装 / 需确认 三级分类
+
+### project_state.py 新增命令（v2.0）
+
+- `trigger-evaluate`：评估触发器是否应触发
+- `trigger-activate / deactivate`：管理触发器状态
+- `focus-set / focus-clear`：焦点管理
+- `checkpoint-save / checkpoint-load`：断点管理
+
+### 新增文件
+
+| 文件 | 说明 |
+|------|------|
+| `scripts/trigger_engine.py` | Aware 触发器引擎 |
+| `scripts/tool_discovery.py` | 工具自发现 |
+| `references/aware-triggers.md` | 触发器系统文档 |
+| `references/tool-discovery.md` | 工具发现文档 |
+| `templates/triggers.yaml` | 触发器模板 |
+| `templates/focus.yaml` | Focus 模板 |
+
+**新增代码行数**：+2308 行
+
+---
+
+## v3.0 (2026-03-14) — 三层架构重构 + Context Intake + 标签体系 v2
+
+### 核心变更
+
+#### 三层架构重构
+
+旧结构（references / scripts / templates / scenarios）→ 新三层架构：
+
+```
+brain/     ← CEO 决策层（怎么想）
+engine/    ← 执行引擎层（怎么跑）
+playbook/  ← 知识与模板层（参考素材）
+```
+
+SKILL.md 从 635 行精简至 207 行（-67%）
+
+#### Phase 0 Context Intake（强制入口）
+
+OPC 被触发后，第一步必须给出推进方案并征询确认，不允许直接 spawn。
+- 四维摄入框架（背景/目标/约束/范围）
+- 标准化方案输出格式
+- 复杂度自动判断（1-2 轮确认）
+
+#### 工具发现标签体系 v2
+
+`tool_discovery.py` 升级：
+- 12 个 domain 标签 × 8 个 capability 标签
+- 标签匹配（精确）+ 关键词（兜底）双路匹配
+- OPC 自排除：不再把自己推荐给任务
+- 新增 `enrich` 命令
+
+#### 触发器融入生命周期
+
+Phase 3 每轮循环明确要求执行 `trigger-evaluate`。
+
+### 新增文件
+
+| 文件 | 说明 |
+|------|------|
+| `brain/core-flow.md` | 四阶段完整流程规范 |
+| `engine/README.md` | 引擎命令速查 |
+| `playbook/scenarios/research-project.md` | 研究项目实战案例 |
+
+### 验证
+
+格式塔科技深度分析（opc-20260314-002）：4 Agent 并行，40K tokens，全链路通过。
+
+
+---
+
 ## v3.1 — 用户模型自学习（2026-03-14）
 
 ### 核心变更：OPC 越用越懂你
