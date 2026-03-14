@@ -182,9 +182,10 @@ agent 失败 → 立即归因
 
 ```
 agent-orchestration-20260309-lzw/
-├── SKILL.md              ← 入口（你在这里，~130行）
+├── SKILL.md              ← 入口（你在这里）
+├── CHANGELOG.md          ← 完整版本历程（v1.0 → v3.1）
 ├── brain/                ← CEO 决策层（怎么想）
-│   ├── core-flow.md      ← 四阶段流程 + Context Intake 规范
+│   ├── core-flow.md      ← 四阶段流程 + Context Intake + 用户模型规范
 │   ├── task-decomposition.md
 │   ├── role-design.md
 │   ├── collaboration-patterns.md
@@ -196,12 +197,15 @@ agent-orchestration-20260309-lzw/
 │   ├── trigger_engine.py ← Aware 触发器
 │   ├── tool_discovery.py ← 工具发现（标签体系 v2）
 │   ├── diagnose_agent.py ← 自动归因
-│   ├── README.md         ← 命令速查
-│   └── *.md              ← 各引擎设计文档
+│   └── README.md         ← 命令速查
 ├── playbook/             ← 知识与模板层（参考素材）
 │   ├── persona-priming.md
 │   ├── philosophy.md
 │   ├── templates/
+│   │   └── opc-user-model.md  ← 用户模型模板（v3.1）
 │   └── scenarios/        ← 实战案例
 └── archive/              ← 旧版归档
+
+用户模型实例（workspace，自动维护）：
+~/.openclaw/workspace/opc-user-model.md
 ```
