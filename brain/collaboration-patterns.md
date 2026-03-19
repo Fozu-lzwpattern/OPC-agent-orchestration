@@ -67,3 +67,38 @@ A ←→ B → C
 阶段2：并行（搭建/内容/供给）
 阶段3：迭代（QA↔搭建）
 阶段4：串行（发布）
+
+
+---
+
+## task-graph 使用指南（v5.1）
+
+在 Phase 1（规划阶段）完成任务拆解后，CEO 应立即声明依赖图：
+
+```bash
+# 示例：研究项目，两个研究员并行，汇总员串行
+python3 engine/project_state.py task-graph <pid> add researcher_a "" reports/topic-a.md
+python3 engine/project_state.py task-graph <pid> add researcher_b "" reports/topic-b.md
+python3 engine/project_state.py task-graph <pid> add integrator "researcher_a,researcher_b" reports/final.md
+
+# 查看并行组（spawn 决策依据）
+python3 engine/project_state.py task-graph <pid> show
+# 输出：可并行启动: ['researcher_a', 'researcher_b']
+```
+
+**执行策略**：
+
+```
+task-graph show → 找出"可并行启动"列表
+    │
+    ├── 并行组：同时 spawn，监控各自完成
+    │   └── 全部完成 → verify 各自产出 → 启动下游
+    └── 串行节点：等依赖项全部完成后再 spawn
+```
+
+**context compaction 后恢复**：
+
+```bash
+python3 engine/project_state.py restore <pid>
+# restore 会输出 task_graph，CEO 根据已完成节点判断从哪里继续
+```

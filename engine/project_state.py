@@ -397,6 +397,53 @@ def cmd_verify(pid, label, verify_cmd):
         return 3
 
 
+
+def cmd_task_graph(args):
+    """声明或查看项目任务依赖图
+    用法:
+      task-graph <pid> show                          — 显示当前依赖图
+      task-graph <pid> add <label> <depends_on_csv> <output_path>
+        依赖用逗号分隔，无依赖传空串: task-graph <pid> add researcher_b "" reports/b.md
+    """
+    if len(args) < 2:
+        print("用法: task-graph <pid> show|add ...")
+        return
+    pid, action = args[0], args[1]
+    state = _load(pid)
+    graph = state.get("task_graph", {})
+
+    if action == "show":
+        if not graph:
+            print("(无依赖图声明)")
+            return
+        print(f"\n任务依赖图 [{pid}]:")
+        for label, info in graph.items():
+            deps = info.get("depends_on", [])
+            out = info.get("output", "?")
+            can_parallel = "并行✅" if not deps else f"串行❌ 依赖: {deps}"
+            print(f"  {label}: {can_parallel} → {out}")
+        # 并行组
+        parallel = [l for l, i in graph.items() if not i.get("depends_on")]
+        if parallel:
+            print(f"\n  可并行启动: {parallel}")
+
+    elif action == "add":
+        if len(args) < 5:
+            print("用法: task-graph <pid> add <label> <depends_on_csv> <output_path>")
+            return
+        label = args[2]
+        depends_csv = args[3]
+        output = args[4]
+        depends = [d.strip() for d in depends_csv.split(",") if d.strip()] if depends_csv else []
+        graph[label] = {"depends_on": depends, "output": output}
+        state["task_graph"] = graph
+        _save(pid, state)
+        dep_str = f"依赖 {depends}" if depends else "无依赖（可并行）"
+        print(f"✅ [{label}] {dep_str} → {output}")
+
+    else:
+        print(f"未知 action: {action}")
+
 def cmd_wake_frozen():
     """扫描所有 OPC 项目，找出冻结/暂停的项目，给出唤醒建议"""
     import time as _time
@@ -550,6 +597,8 @@ if __name__ == "__main__":
         sys.exit(rc)
     elif cmd == "wake-frozen":
         cmd_wake_frozen()
+    elif cmd == "task-graph":
+        cmd_task_graph(args[1:])
 
     else:
         print(f"未知命令: {cmd}")
