@@ -188,3 +188,90 @@ Sub-agent 完成 / 超时检查
 - **偏好区可更新**（覆盖旧的同类条目）
 - **不写入 MEMORY.md 或 USER.md**（那是用户和喵神维护的，OPC 不动）
 - **文件不存在时自动创建**（参考模板：`playbook/templates/opc-user-model.md`）
+
+
+---
+
+## Phase 4：交付包 Delivery Package（v5.0 新增）
+
+> CEO 在所有 Agent 完成 + verify 通过后，**主动生成交付包**，不等用户追问。
+> 交付包是 OPC 与用户之间的最后一公里——从"原材料"变成"可以用的结果"。
+
+### 标准交付包格式
+
+```
+📦 OPC 项目交付
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ 核心结论
+{一段话，直接说这个项目做出了什么、结论是什么}
+
+📁 产出清单
+- {label}：{path} — {一句话描述这个文件是什么}
+- ...
+
+💡 CEO 建议
+{基于产出，下一步可以做什么？有没有值得继续深入的方向？}
+
+⚠️ 注意事项
+{质量瑕疵（如有）/ 未完成项 / 需要人工确认的地方}
+{如无，填"无"}
+
+💰 消耗摘要
+总 token：~{N}K | 耗时：~{N} 分钟 | Agent 数量：{N}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+### 生成规则
+
+- **核心结论**：不是产出列表，是真正的"所以怎样"——即使用户不读报告，看这一段也能做决策
+- **CEO 建议**：至少给 1 条下一步建议，不能只说"供参考"
+- **注意事项**：诚实写出瑕疵，不粉饰太平；没有瑕疵才写"无"
+- **自适应长度**：L1 任务交付包可以压缩到 5 行；L3 任务完整展开
+
+---
+
+## Phase 5：自动复盘 Retrospective（v5.0 新增）
+
+> 项目 close 时自动触发，**不需要 spawn Sub-agent**，CEO 自己执行。
+> 目的：把踩过的坑变成系统知识，让 OPC 越用越强。
+
+### 触发时机
+
+```bash
+# close 命令自动触发 Phase 5
+python3 engine/project_state.py close <pid> "项目已交付"
+# close 内部会自动调用 retrospective 逻辑
+```
+
+### 复盘五步
+
+```
+Step 1：消耗对比
+  预估 token vs 实际 token
+  偏差 > 50% → 记录原因到 state.json
+
+Step 2：验收失败归因
+  有 verify 失败记录？→ 提炼失败模式 → 写入 opc-user-model.md
+  "研究员 A 在 X 类任务上需要更明确的格式约束"
+
+Step 3：质量自评
+  CEO 给本次产出打分（1-5）
+  评分依据：用户满意度信号 + verify 通过率 + 交付包完整度
+
+Step 4：一句话教训
+  这个项目最重要的一个教训是什么？
+  写入 playbook/scenarios/{场景}.md 的「踩坑记录」区块
+
+Step 5：更新用户模型
+  把任务类型、角色配置、有效 Persona、消耗、评分写回 opc-user-model.md
+```
+
+### 复盘产出写入位置
+
+| 内容 | 写入位置 |
+|------|---------|
+| 消耗偏差原因 | opc-projects/{pid}/state.json → retrospective |
+| 失败模式 | opc-user-model.md → failure_patterns |
+| 质量评分 | opc-projects/{pid}/state.json → quality_score |
+| 一句话教训 | playbook/scenarios/{type}.md → 踩坑记录 |
+| 全量项目记录 | opc-user-model.md → project_history |

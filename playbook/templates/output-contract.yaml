@@ -1,0 +1,88 @@
+# Output Contract — 项目产出协议模板
+
+> 在 `project init` 时填写，CEO 和所有 Sub-agent 共同遵守。
+> verify 命令将对照此文件执行验收。
+
+---
+
+## 使用方式
+
+```bash
+# 初始化时创建（CEO 在 Phase 1 末尾填写）
+cp playbook/templates/output-contract.yaml opc-projects/{pid}/output-contract.yaml
+
+# verify 时自动读取（project_state.py 会查找同目录的 output-contract.yaml）
+python3 engine/project_state.py verify <pid> <label> "contract"
+```
+
+---
+
+## 模板文件
+
+```yaml
+# output-contract.yaml
+# 填写说明：required=true 的项目，verify 时必须通过
+
+project: "{项目名称}"
+created: "{YYYY-MM-DD}"
+
+outputs:
+  # === 研究/写作类产出 ===
+  - label: research_report           # 唯一标识符（对应 agent label）
+    path: workspace/reports/{date}-{topic}.md
+    type: markdown
+    min_lines: 80                    # 最低行数
+    required_sections:               # 必须包含的章节（grep 匹配）
+      - "核心发现"
+      - "参考来源"
+    required: true
+
+  # === 工程类产出 ===
+  - label: code_package
+    path: workspace/{repo}/
+    type: directory
+    test_cmd: "cd workspace/{repo} && npm test"   # 验收命令
+    build_cmd: "cd workspace/{repo} && npm run build"
+    required: true
+
+  # === 文档类产出 ===
+  - label: design_spec
+    path: workspace/docs/{date}-{feature}-spec.md
+    type: markdown
+    min_lines: 50
+    required_sections:
+      - "用户场景"
+      - "边界状态"
+    required: false                  # 可选产出
+    notes: "设计规格，仅在有 UX 任务时需要"
+
+# 整体验收通过条件：所有 required=true 的产出均验收通过
+```
+
+---
+
+## 验收流程（CEO 执行）
+
+```
+Phase 3 结束时：
+
+1. 读取 output-contract.yaml
+2. 逐条检查 required=true 的产出：
+   - 文件/目录存在？
+   - min_lines 满足？
+   - required_sections 全部存在？
+   - test_cmd/build_cmd 执行通过？
+3. 全部通过 → 进入 Phase 4 交付
+4. 有任何不通过 → 精准反馈给对应 Sub-agent → 最多重试 3 次
+```
+
+---
+
+## 快速填写指引
+
+| 项目类型 | 典型产出 |
+|---------|---------|
+| 研究项目 | research_report × N（每研究员一份）+ final_report（integrator） |
+| 工程项目 | code_package + test_report |
+| 内容项目 | article + (可选) design_spec |
+| 混合项目 | 按实际角色配置组合 |

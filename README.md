@@ -36,7 +36,7 @@ You (Owner) → OpenClaw CEO → Sub-agents (Specialists)
 ```bash
 # Install
 cd ~/.openclaw/skills
-unzip agent-orchestration-v3.2.zip
+unzip agent-orchestration-v5.0.zip
 
 # Trigger OPC by telling OpenClaw:
 # "Help me build a complete [project]"
@@ -47,7 +47,7 @@ unzip agent-orchestration-v3.2.zip
 
 ```
 agent-orchestration-20260309-lzw/
-├── SKILL.md              ← Entry point (v3.2)
+├── SKILL.md              ← Entry point (v5.0)
 ├── brain/                ← CEO decision layer
 │   ├── core-flow.md      ← 4-phase flow + Context Intake
 │   ├── task-decomposition.md
@@ -61,7 +61,7 @@ agent-orchestration-20260309-lzw/
 └── playbook/             ← Knowledge & templates
     ├── persona-priming.md     ← Persona methodology + library index
     ├── personas/
-    │   └── lzw.md             ← Built-in LZW Advisor Persona (v3.2)
+    │   └── lzw.md             ← Built-in LZW Advisor Persona (v5.0)
     ├── templates/
     └── scenarios/
 ```
@@ -125,7 +125,7 @@ OPC（One-Person Company，一人公司）是一个 OpenClaw Skill，把复杂�
 ```bash
 # 安装
 cd ~/.openclaw/skills
-unzip agent-orchestration-v3.2.zip
+unzip agent-orchestration-v5.0.zip
 
 # 触发 OPC，对 OpenClaw 说：
 # "帮我做一个完整的 [项目]"
@@ -156,7 +156,7 @@ OPC 的 Persona 分为两类，设计逻辑不同：
 
 | 版本 | 日期 | 核心变更 |
 |------|------|---------|
-| **v3.2** | **2026-03-16** | **内置 LZW 顾问 Persona + personas/ 目录** |
+| **v5.0** | **2026-03-16** | **内置 LZW 顾问 Persona + personas/ 目录** |
 | v3.1 | 2026-03-14 | 用户模型自学习：Phase 0 读取 + Phase 4 写回 |
 | v3.0 | 2026-03-14 | 三层架构重构 + Context Intake + 工具发现标签体系 v2 |
 | v2.0 | 2026-03-12 | Aware 触发器 + 运行时工具自发现 |

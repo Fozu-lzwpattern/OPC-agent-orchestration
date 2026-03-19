@@ -1,6 +1,6 @@
 ---
 name: agent-orchestration-20260309-lzw
-version: "3.2"
+version: "5.0"
 description: >
   One-Person Company (OPC) 编排技能 — 复杂任务的多 Agent 协作指挥中枢。
   
@@ -19,10 +19,10 @@ description: >
   需要多个步骤、并行执行、团队协作、策划+搭建+发布、研究项目、内容流水线
 ---
 
-# OPC — One-Person Company 编排技能 v3.2
+# OPC — One-Person Company 编排技能 v5.0
 
 > 用户是老板，OpenClaw 是 CEO，Sub-agents 是专业员工。
-> 用户只说"我要做 X"，CEO 负责拆活儿、招人、盯进度、交结果。
+> 用户只说"我要做 X"，CEO 负责拆活儿、招人、盯进度、**亲自验收**、交结果。
 
 ---
 
@@ -108,6 +108,12 @@ python3 engine/project_state.py close <pid>
 python3 engine/project_state.py restore <pid>
 python3 engine/project_state.py diagnose <pid>
 
+# ⭐ v4.0 CEO 自主验收（agent 完成后、agent-complete 前执行）
+python3 engine/project_state.py verify <pid> <label> "npm test"
+
+# ⭐ v4.0 冻结项目扫描（Heartbeat 时调用）
+python3 engine/project_state.py wake-frozen
+
 # 工具发现（Phase 0 可选）
 python3 engine/tool_discovery.py report "任务描述"
 ```
@@ -183,9 +189,10 @@ agent 失败 → 立即归因
 ```
 agent-orchestration-20260309-lzw/
 ├── SKILL.md              ← 入口（你在这里）
-├── CHANGELOG.md          ← 完整版本历程（v1.0 → v3.2）
+├── CHANGELOG.md          ← 完整版本历程（v1.0 → v5.0）
 ├── brain/                ← CEO 决策层（怎么想）
-│   ├── core-flow.md      ← 四阶段流程 + Context Intake + 用户模型规范
+│   ├── core-flow.md      ← 四阶段流程 + Context Intake + 冻结唤醒
+│   ├── verification.md   ← ⭐ v4.0 CEO 自主验收规则库
 │   ├── task-decomposition.md
 │   ├── role-design.md
 │   ├── collaboration-patterns.md
@@ -193,7 +200,7 @@ agent-orchestration-20260309-lzw/
 │   ├── proactive-reporting.md
 │   └── cost-tracking.md
 ├── engine/               ← 执行引擎层（怎么跑）
-│   ├── project_state.py  ← 核心：项目状态管理
+│   ├── project_state.py  ← 核心：项目状态管理（v4.0：+verify, +wake-frozen）
 │   ├── trigger_engine.py ← Aware 触发器
 │   ├── tool_discovery.py ← 工具发现（标签体系 v2）
 │   ├── diagnose_agent.py ← 自动归因
@@ -211,3 +218,88 @@ agent-orchestration-20260309-lzw/
 用户模型实例（workspace，自动维护）：
 ~/.openclaw/workspace/opc-user-model.md
 ```
+
+
+---
+
+## 触发分级矩阵（v5.0）
+
+> CEO 收到任务后，先用此矩阵判断 OPC 级别，再决定是否启动以及以何种模式启动。
+
+```
+L0 — 不触发 OPC（直接执行）
+  条件：单一工具调用 / 单步任务 / 预计 < 5 分钟 / 无需协作
+
+L1 — 轻量 OPC（省略 Phase 0 确认，直接 spawn + 简报）
+  条件：2-3 步串行 / 有上下文依赖 / 单一领域
+
+L2 — 标准 OPC（完整四阶段，方案卡 ≤ 5 行）
+  触发任意 3 条：
+  □ 用户消息含"完整"/"全链路"/"从头到尾"/"完整的X"
+  □ 预计步骤 > 5 步
+  □ 涉及 2+ 个独立业务领域
+  □ 需要输出文件 > 3 个
+  □ 预估 token > 50K
+  □ 用户提到"并行"/"多角色"/"分工"
+
+L3 — 重型 OPC（完整四阶段 + 结构化方案卡 + 明确确认）
+  触发任意 2 条：
+  □ 预计跨天或多个 session
+  □ 涉及 3+ 个领域
+  □ 预估 token > 200K
+  □ 有复杂依赖链（A 完成才能启动 B，B 完成才能启动 C）
+```
+
+### 自适应指挥规则
+
+| 级别 | Phase 0 | 方案卡 | 交付包 | 复盘 |
+|------|---------|--------|--------|------|
+| L1 | 跳过 | 跳过 | 简版（3行） | 跳过 |
+| L2 | 执行 | ≤ 5 行 | 标准版 | 执行 |
+| L3 | 执行 | 完整结构化 | 完整版 | 执行 |
+
+
+---
+
+## 角色模板库（v5.0）
+
+CEO spawn Sub-agent 时，优先继承 `playbook/roles/` 中的模板，再覆盖个性化参数。
+
+| 文件 | 角色 | 核心产出 |
+|------|------|---------|
+| researcher.md | 研究员 | 调研报告、竞品分析 |
+| engineer.md | 工程师 | 代码、测试 |
+| writer.md | 写作者 | 文章、文档 |
+| analyst.md | 数据分析师 | 数据报告、指标分析 |
+| integrator.md | 汇总整合员 | 多角色产出合并 |
+| ux-designer.md | 体验设计师 | 交互方案、设计规格 |
+| biz-analyst.md | 商业分析师 | 商业模型、战略建议 |
+| critic.md | 评价与反馈 | 质量审查、改进建议 |
+
+**Persona 与角色是两个维度，可自由组合**：
+- 岗位模板定义"做什么"（任务边界 + 产出规格）
+- Persona 定义"怎么思考"（思维方式 + 方法论）
+
+```
+# 示例：高质量研究角色
+[角色] researcher.md 研究员
+[Persona] 以 Nate Silver 的数据驱动思维工作
+[USER_VOICE] "{用户原话}"
+[文件所有权] reports/topic-a/
+```
+
+---
+
+## Output Contract（v5.0）
+
+项目初始化时，CEO 在 `opc-projects/{pid}/` 创建 `output-contract.yaml`，声明所有预期产出。
+
+```bash
+# 使用模板
+cp playbook/templates/output-contract.yaml opc-projects/{pid}/output-contract.yaml
+
+# verify 时对照 contract 执行
+python3 engine/project_state.py verify <pid> <label> "contract"
+```
+
+详见 `playbook/templates/output-contract.yaml`。

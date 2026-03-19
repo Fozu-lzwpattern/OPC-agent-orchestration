@@ -356,6 +356,93 @@ def cmd_tool_scan(task_description):
     print(report)
 
 
+
+# ═══════════════════════════════════════════════════════════════
+# v4.0 新增命令
+# ═══════════════════════════════════════════════════════════════
+
+def cmd_verify(pid, label, verify_cmd):
+    """CEO 自主验收：执行验收命令，记录结果到 project_state。返回 0=通过, 非0=失败"""
+    import subprocess
+    data = _load(pid)
+    ag = data.get("agents", {}).get(label)
+
+    print(f"🔍 验收 [{label}]: {verify_cmd}")
+    try:
+        result = subprocess.run(
+            verify_cmd, shell=True, capture_output=True, text=True, timeout=120
+        )
+        passed = result.returncode == 0
+        output_tail = (result.stdout + result.stderr).strip()[-500:]
+        status_str = "✅ 通过" if passed else "❌ 失败"
+        print(f"{status_str} (exit {result.returncode})")
+        if output_tail:
+            print(output_tail)
+        if ag:
+            if "verifications" not in ag:
+                ag["verifications"] = []
+            ag["verifications"].append({
+                "cmd": verify_cmd, "passed": passed,
+                "exitCode": result.returncode, "tail": output_tail[:300], "ts": _now(),
+            })
+            ag["lastVerifyPassed"] = passed
+            data["agents"][label] = ag
+            _save(pid, data)
+        return 0 if passed else 1
+    except subprocess.TimeoutExpired:
+        print("⏱️  验收命令超时（120s）")
+        return 2
+    except Exception as e:
+        print(f"❌ 验收命令出错: {e}")
+        return 3
+
+
+def cmd_wake_frozen():
+    """扫描所有 OPC 项目，找出冻结/暂停的项目，给出唤醒建议"""
+    import time as _time
+    import json as _json
+    base = os.path.join(os.path.expanduser("~"), ".openclaw", "workspace", "opc-projects")
+    if not os.path.isdir(base):
+        print("ℹ️  opc-projects/ 目录不存在，无冻结项目。")
+        return
+    frozen, stale = [], []
+    now_ms = _time.time() * 1000
+    for pid in sorted(os.listdir(base)):
+        state_file = os.path.join(base, pid, "state.json")
+        if not os.path.exists(state_file):
+            continue
+        try:
+            with open(state_file) as f:
+                data = _json.load(f)
+            proj = data.get("project", data)  # fallback to top-level for old schema
+            phase = proj.get("currentPhase", "")
+            status = proj.get("status", "")
+            if phase in ("completed", "closed") or status in ("completed", "closed"):
+                continue
+            updated = proj.get("updatedAt", proj.get("createdAt", 0))
+            if isinstance(updated, str) or updated == 0:
+                updated = os.path.getmtime(state_file) * 1000
+            paused_h = (now_ms - float(updated)) / 3_600_000
+            name = proj.get("name", pid)
+            entry = {"pid": pid, "name": name, "phase": phase, "paused_h": paused_h}
+            (stale if paused_h > 24 else frozen).append(entry)
+        except Exception:
+            continue
+    if not frozen and not stale:
+        print("✅ 无冻结项目。")
+        return
+    if frozen:
+        print(f"\n📌 发现 {len(frozen)} 个冻结项目（暂停 < 24h）：")
+        for e in frozen:
+            print(f"  [{e['pid']}] {e['name']} — {e['phase']}，已暂停 {e['paused_h']:.1f}h")
+        print("  → restore <pid> 恢复上下文，或通知用户确认是否继续\n")
+    if stale:
+        print(f"\n🗄️  发现 {len(stale)} 个 stale 项目（暂停 > 24h，不自动唤醒）：")
+        for e in stale:
+            print(f"  [{e['pid']}] {e['name']} — {e['phase']}，已暂停 {e['paused_h']:.1f}h")
+        print("  等待用户明确指示后再处理。\n")
+
+
 # ═══════════════════════════════════════════════════════════════
 # Main dispatcher
 # ═══════════════════════════════════════════════════════════════
@@ -384,6 +471,10 @@ v2.0 新增命令:
   focus-update <pid> <id> <status>      — 更新焦点状态 ([ ] [/] [x] [!])
   focus-list <pid>                      — 列出活跃焦点
   tool-scan <task_description>          — 扫描推荐工具
+
+v4.0 新增命令:
+  verify <pid> <label> "<cmd>"          — CEO 自主验收：执行命令，记录结果
+  wake-frozen                           — 扫描冻结/暂停项目，输出唤醒建议
 """
 
 if __name__ == "__main__":
@@ -449,6 +540,16 @@ if __name__ == "__main__":
             print("用法: tool-scan <task_description>")
             sys.exit(1)
         cmd_tool_scan(" ".join(args[1:]))
+
+    # ── v4.0 new commands ──
+    elif cmd == "verify":
+        if len(args) < 4:
+            print("用法: verify <pid> <label> \"<verify_cmd>\"")
+            sys.exit(1)
+        rc = cmd_verify(args[1], args[2], " ".join(args[3:]))
+        sys.exit(rc)
+    elif cmd == "wake-frozen":
+        cmd_wake_frozen()
 
     else:
         print(f"未知命令: {cmd}")

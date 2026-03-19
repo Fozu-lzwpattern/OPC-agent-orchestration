@@ -393,3 +393,43 @@ OPC 触发后，在追问用户之前，先依次读取：
 ```
 项目越多 → 用户模型越丰富 → Phase 0 预判越准 → 用户越惊喜 → 做更多项目
 ```
+
+
+---
+
+## v5.0 (2026-03-19) — 六大专业化升级
+
+> 基于 v4.0 实战后大仙的系统性反馈：触发不准、角色不稳、交付不够、复盘缺失。
+
+### 实战问题
+
+| 问题 | 根因 | v5.0 解决方案 |
+|------|------|-------------|
+| OPC 触发时机不准确 | 触发条件是模糊文字 | 触发分级矩阵（L0-L3） |
+| 轻量任务走完整流程体验重 | 无自适应机制 | 自适应指挥模式 |
+| 角色卡质量不稳定 | 全靠 CEO 临场发挥 | 角色模板库（8个） |
+| 产出路径和格式不一致 | 无产出协议 | Output Contract |
+| 交付只有结果，缺少"接住感" | Phase 4 缺失 | Delivery Package |
+| 踩坑无法沉淀 | 无复盘机制 | Phase 5 Retrospective |
+
+### Added
+
+- **playbook/roles/**（8个新文件）— 角色模板库
+  - researcher / engineer / writer / analyst / integrator
+  - ux-designer / biz-analyst / critic
+- **playbook/templates/output-contract.yaml** — 产出协议模板
+- **brain/core-flow.md Phase 4** — 交付包 Delivery Package
+- **brain/core-flow.md Phase 5** — 自动复盘 Retrospective
+
+### Changed
+
+- **SKILL.md** — 触发分级矩阵（L0-L3）+ 自适应指挥规则 + 角色/Contract 引用
+- **brain/core-flow.md** — 新增 Phase 4 + Phase 5 完整规范
+- 版本号：4.0 → 5.0
+
+### Design Principles
+
+- **角色 = 岗位 + Persona 两个维度**：模板定义"做什么"，Persona 定义"怎么思考"，可自由组合
+- **critic 角色**：内容质量审查（主观），区别于 verify（机器验收）
+- **交付包**：让用户"接住"结果，不只是"结果在这里"
+- **复盘飞轮**：每个项目的踩坑都沉淀到系统知识，OPC 越用越强
