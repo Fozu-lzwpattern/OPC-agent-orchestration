@@ -479,3 +479,31 @@ OPC 触发后，在追问用户之前，先依次读取：
 ### Changed
 
 - SKILL.md v5.2：新增速启模板速查表 + critic 铁律说明
+
+
+---
+
+## v5.3 (2026-03-19) — gstack 三项借鉴
+
+> 来源：Garry Tan (YC CEO) 的 gstack 开源项目分析，提炼三个可直接落地的机制。
+
+### Added
+
+- **brain/core-flow.md Phase 0 扩展** — 问题重构（Office Hours）
+  - 三步：听痛点 → 挑战前提假设 → 提供 2-3 条路径 + 工作量估算
+  - L2/L3 任务必须执行，防止"用户说做X就做X"而忽略真实需求
+
+- **engine/project_state.py `retro` 命令** — 数据驱动历史复盘
+  - 聚合：项目完成率、总 token、平均质量评分、角色使用频率、失败模式
+  - 支持 --days N / --type 过滤
+
+- **brain/verification.md Iron Law 调试协议** — 不调查就不修复
+  - verify 失败 2 次 → 强制根因分析（RCA），不是重试
+  - verify 失败 3 次 → 强制用户介入，不再自主绕行
+  - 与 Phase 5 复盘衔接：失败模式 → retro 聚合分析
+
+### Philosophy
+
+gstack 与 OPC 的共同理念：**AI + 结构化角色 = 一个人的公司**
+gstack 专注于工程开发流水线（Claude Code），OPC 专注于通用多领域编排。
+两者互补，思路相通。

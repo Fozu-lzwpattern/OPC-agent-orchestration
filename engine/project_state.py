@@ -398,6 +398,112 @@ def cmd_verify(pid, label, verify_cmd):
 
 
 
+def cmd_retro(args):
+    """数据驱动的历史项目统计复盘（灵感来源：gstack /retro）
+    用法:
+      retro             — 全量历史统计
+      retro --days 7    — 最近 N 天
+      retro --type research  — 按项目类型过滤
+    """
+    import glob, datetime
+
+    days_filter = None
+    type_filter = None
+    for i, a in enumerate(args):
+        if a == "--days" and i + 1 < len(args):
+            days_filter = int(args[i + 1])
+        if a == "--type" and i + 1 < len(args):
+            type_filter = args[i + 1].lower()
+
+    state_dir = BASE_DIR
+    if not os.path.exists(state_dir):
+        print('无项目数据')
+        return
+    files = glob.glob(os.path.join(state_dir, "*/state.json"))
+
+    projects = []
+    for f in files:
+        try:
+            with open(f) as fh:
+                raw = json.load(fh)
+            proj = raw.get("project", raw)  # 兼容嵌套结构
+            # 日期过滤
+            created = proj.get("createdAt", proj.get("created", ""))
+            if days_filter and created:
+                try:
+                    created_dt = datetime.datetime.strptime(created[:10], "%Y-%m-%d")
+                    if (datetime.datetime.now() - created_dt).days > days_filter:
+                        continue
+                except Exception:
+                    pass
+            # 类型过滤
+            name = proj.get("name", "").lower()
+            if type_filter and type_filter not in name:
+                continue
+            # 规范化字段
+            cost = raw.get("cost", {})
+            data = {
+                "id": proj.get("id", "?"),
+                "name": proj.get("name", "?"),
+                "status": proj.get("status", "?"),
+                "created": created,
+                "total_tokens": cost.get("totalTokens", 0),
+                "agents": raw.get("agents", {}),
+                "retrospective": raw.get("retrospective", {}),
+            }
+            projects.append(data)
+        except Exception:
+            continue
+
+    if not projects:
+        print("无项目数据")
+        return
+
+    # 统计
+    total = len(projects)
+    completed = sum(1 for p in projects if p.get("status") == "completed")
+    total_tokens = sum(p.get("total_tokens", 0) for p in projects)
+    quality_scores = [p.get("retrospective", {}).get("quality_score", 0) for p in projects if p.get("retrospective", {}).get("quality_score")]
+    avg_quality = sum(quality_scores) / len(quality_scores) if quality_scores else None
+
+    # 角色使用统计
+    role_counts = {}
+    for p in projects:
+        for agent in p.get("agents", {}).values():
+            role = agent.get("role", "unknown")
+            role_counts[role] = role_counts.get(role, 0) + 1
+
+    # 失败模式
+    fail_patterns = []
+    for p in projects:
+        fp = p.get("retrospective", {}).get("failure_patterns", [])
+        fail_patterns.extend(fp if isinstance(fp, list) else [fp] if fp else [])
+
+    print(f"\n📊 OPC Retro Report")
+    print(f"{'━' * 40}")
+    print(f"项目总数:     {total}")
+    print(f"已完成:       {completed} ({int(completed/total*100) if total else 0}%)")
+    print(f"总 Token:     ~{total_tokens//1000}K")
+    if avg_quality:
+        print(f"平均质量评分: {avg_quality:.1f}/5")
+
+    print(f"\n🎭 角色使用频率 (Top 5):")
+    for role, count in sorted(role_counts.items(), key=lambda x: -x[1])[:5]:
+        bar = "█" * count
+        print(f"  {role:<20} {bar} ({count})")
+
+    print(f"\n⚠️  失败模式 (最近 {len(fail_patterns)} 条):")
+    for fp in fail_patterns[-5:]:
+        print(f"  • {fp}")
+
+    print(f"\n📈 项目列表 (最近 10):")
+    recent = sorted(projects, key=lambda p: p.get("created", ""), reverse=True)[:10]
+    for p in recent:
+        status_icon = "✅" if p.get("status") == "completed" else "🔄" if p.get("status") == "active" else "❄️"
+        tokens = p.get("total_tokens", 0)
+        qs = p.get("retrospective", {}).get("quality_score", "-")
+        print(f"  {status_icon} {p.get('id','?')[:20]:<22} {p.get('name','')[:30]:<32} ~{tokens//1000}K tok  Q:{qs}")
+
 def cmd_task_graph(args):
     """声明或查看项目任务依赖图
     用法:
@@ -599,8 +705,11 @@ if __name__ == "__main__":
         cmd_wake_frozen()
     elif cmd == "task-graph":
         cmd_task_graph(args[1:])
+    elif cmd == "retro":
+        cmd_retro(args[1:])
 
     else:
         print(f"未知命令: {cmd}")
         print(USAGE)
         sys.exit(1)
+

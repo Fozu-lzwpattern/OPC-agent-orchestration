@@ -1,6 +1,6 @@
 ---
 name: agent-orchestration-20260309-lzw
-version: "5.2"
+version: "5.3"
 description: >
   One-Person Company (OPC) 编排技能 — 复杂任务的多 Agent 协作指挥中枢。
   
@@ -19,7 +19,7 @@ description: >
   需要多个步骤、并行执行、团队协作、策划+搭建+发布、研究项目、内容流水线
 ---
 
-# OPC — One-Person Company 编排技能 v5.2
+# OPC — One-Person Company 编排技能 v5.3
 
 > 用户是老板，OpenClaw 是 CEO，Sub-agents 是专业员工。
 > 用户只说"我要做 X"，CEO 负责拆活儿、招人、盯进度、**亲自验收**、交结果。
